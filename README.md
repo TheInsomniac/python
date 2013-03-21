@@ -10,4 +10,7 @@ device control and basic device/interface status.
 
 Requires requests and lxml.
 
+Can be imported as a module to use in your own program or run directly from the command line.
+
+
 
