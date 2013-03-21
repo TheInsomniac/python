@@ -1,4 +1,24 @@
-#!/usr/bin/env python
+'''
+A basic Homeseer control base class.
+
+Usage:
+ - import homeseer :
+    hs = homeseer.HSConnect("IPADDRESS")
+ - from homeseer import HSConnect
+     hs = HSConnect("IPADDRESS")
+
+Implemented functions
+ - control:
+        to control Homeseer interfaces
+ - status:
+        to display the current status interfaces
+
+To do:
+ - implement more robust control and status. Hopefully be able to manage entire HS
+   setup from Python.
+'''
+__version__ = "0.3"
+
 import requests
 import sys
 import os
@@ -7,12 +27,65 @@ import lxml
 from lxml import html
 
 
-class Homeseer(object):
+class HSConnect(object):
+
+    ''' Homeseer base class.
+    Requires the Homeseer base URL or IP address passed to init.
+    such as "http://127.0.0.1" or "http://localhost"
+
+    To control an HS device supporting on/off/dim then enter the following:
+
+        On   :exec housecode on
+        Off  :exec housecode off
+        DDim :exec housecode ddim level (dims to absolute dim value)
+        Dim  :exec housecode dim level (dims relative to current level)
+
+        example :exec B10 ddim 10
+                      exec B10 on
+
+    To set the string of a device such as as virtual device supporting
+    Play/Pause/Stop any other status bit enter the following:
+
+        string housecode status_string
+
+        example :string B10 Stopped
+                      string B10 Connected
+
+    To obtain the status of a Homeseer interface pass the interface name as the
+    first argument. If your string has spaces be sure to enclose it in quotes
+    such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
+    zwave is NOT equivalent to ZWave.
+
+        example: ZWave
+                      "Motion Detectors"
+    '''
 
     def __init__(self, url):
         self.url = url
 
-    def control(self, script_command, device_housecode, device_command, dim_level):
+    def control(self, script_command, device_housecode, device_command, dim_level=''):
+        '''To control an HS device supporting on/off/dim then enter the following:
+
+        Init:
+        hs = HSconnect("http://127.0.0.1")
+        hs.control(exec, B10, on)
+
+        On   :exec housecode on
+        Off  :exec housecode off
+        DDim :exec housecode ddim level (dims to absolute dim value)
+        Dim  :exec housecode dim level (dims relative to current level)
+
+        example :exec B10 ddim 10
+                      exec B10 on
+
+        To set the string of a device such as as virtual device supporting
+        Play/Pause/Stop any other status bit enter the following:
+
+        string housecode status_string
+
+        example :string B10 Stopped
+                      string B10 Connected
+        '''
 
         if script_command == "exec":
             script_command = "execx10"
@@ -54,6 +127,18 @@ class Homeseer(object):
         return results
 
     def status(self, script_command):
+        '''To obtain the status of a Homeseer interface pass the interface name as the
+        first argument. If your string has spaces be sure to enclose it in quotes
+        such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
+        zwave is NOT equivalent to ZWave.
+
+        Init:
+        hs = HSconnect("http://127.0.0.1")
+        hs.status("ZWave")
+
+        example: ZWave
+                      "Motion Detectors"
+        '''
 
         url = self.url + "/stat?location=" + script_command
 
@@ -91,7 +176,7 @@ class Homeseer(object):
 def main():
 
     ''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
-    hs = Homeseer("http://192.168.10.102")
+    hs = HSConnect("http://192.168.10.102")
     ''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
 
     if len(sys.argv) == 1:
