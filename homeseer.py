@@ -17,7 +17,7 @@ To do:
  - implement more robust control and status. Hopefully be able to manage entire HS
    setup from Python.
 '''
-__version__ = "0.3"
+__version__ = "0.4"
 
 import requests
 import sys
@@ -87,9 +87,9 @@ class HSConnect(object):
                       string B10 Connected
         '''
 
-        if script_command == "exec":
+        if str.lower(script_command) == "exec":
             script_command = "execx10"
-        elif script_command == "string":
+        elif str.lower(script_command) == "string":
             script_command = "setdevicestring"
 
         payload = {'devlist':'0','dev_value':'','devaction':'', \
@@ -167,8 +167,7 @@ class HSConnect(object):
             results.append(group[0])
             results.append(group[2])
             results.append(group[5])
-            #print str(group[0]).ljust(15) +  str(group[2]).ljust(35) + str(group[5])
-        #print results
+
         return results
 
 def main():
@@ -183,21 +182,23 @@ def main():
         print '''
         To control an HS device supporting on/off/dim then enter the following:
 
-        On   :\texec housecode on
-        Off  :\texec housecode off
-        DDim :\texec housecode ddim level (dims to absolute dim value)
-        Dim  :\texec housecode dim level (dims relative to current level)
+        On   :\thousecode on
+        Off  :\thousecode off
+        DDim :\thousecode ddim level (dims to absolute dim value)
+        Dim  :\thousecode dim level (dims relative to current level)
 
-        example :\texec B10 ddim 10
-        \t\texec B10 on
+        example :\tB10 ddim 10
+        \t\tB10 on
 
         To set the string of a device such as as virtual device supporting
         Play/Pause/Stop any other status bit enter the following:
 
         string housecode status_string
+        or
+        s housecode status_string
 
         example :\tstring B10 Stopped
-        \t\tstring B10 Connected
+        \t\tsB10 Connected
 
         To obtain the status of a Homeseer interface pass the interface name as the
         first argument. If your string has spaces be sure to enclose it in quotes
@@ -212,28 +213,18 @@ def main():
         '''
         sys.exit(0)
 
-    script_command = sys.argv[1]
-
-    if sys.argv[2:3]:
-        device_housecode = sys.argv[2]
-        device_command = str.lower(sys.argv[3])
-
-    if sys.argv[4:]:
-        dim_level = ",%s" % (sys.argv[4])
-    else:
-        dim_level = ''
-
-    if str.lower(script_command) == "exec" or str.lower(script_command) == "string":
-        results = hs.control(script_command, device_housecode, device_command, dim_level)
+    def run_control(command):
+        results = hs.control(command, device_housecode, device_command, dim_level)
         print '''
         Your string was    :\t%s
         Your housecode was :\t%s
         Your command was   :\t%s
         Your options were  :\t%s ''' \
-            % (script_command, device_housecode, device_command, dim_level[1:])
+            % (command, device_housecode, device_command, dim_level[1:])
         print ("Response : " + results)
-    else:
-        results = hs.status(script_command)
+
+    def run_status(command):
+        results = hs.status(command)
         ''' clear screen first '''
         os.system('cls' if os.name=='nt' else 'clear')
         count = 0
@@ -245,6 +236,36 @@ def main():
                 str(results[(count+1)][:35] + (results[(count+1)][35:] and '..')).ljust(39) \
                       + str(results[(count+2)])
             count += 3
+
+    commandline = sys.argv[1]
+
+    if 1 < len(commandline) <= 3:
+        device_housecode = sys.argv[1]
+        device_command = str.lower(sys.argv[2])
+        if sys.argv[3:]:
+            dim_level = ",%s" % (sys.argv[3])
+        else:
+            dim_level = ''
+        run_control("exec")
+
+    elif len(commandline) == 1 and commandline == 's':
+        device_housecode = sys.argv[2]
+        device_command = (sys.argv[3]).title()
+        dim_level = ''
+        run_control("string")
+
+    elif sys.argv[2:3]:
+        device_housecode = sys.argv[2]
+        device_command = str.lower(sys.argv[3])
+        if sys.argv[4:]:
+            dim_level = ",%s" % (sys.argv[4])
+        else:
+            dim_level = ''
+        run_control(commandline)
+
+    else:
+        interface = sys.argv[1]
+        run_status(interface)
 
 if __name__ == "__main__":
     main()
