@@ -6,9 +6,6 @@ import time
 import lxml
 from lxml import html
 
-''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
-base_url = "http://192.168.10.102"
-''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
 
 class Homeseer(object):
 
@@ -16,11 +13,19 @@ class Homeseer(object):
         self.url = url
 
     def control(self, script_command, device_housecode, device_command, dim_level):
+
+        if script_command == "exec":
+            script_command = "execx10"
+        elif script_command == "string":
+            script_command = "setdevicestring"
+
         payload = {'devlist':'0','dev_value':'','devaction':'', \
         'delay_hours':'0', 'delay_minutes':'0','delay_seconds':'0','message':'', \
         'hosts':'','runscript':'Execute+Command','ref_page':'ctrl','scriptcmd': \
         '&hs.%s("%s","%s"%s)' % (script_command, device_housecode, \
                                                         device_command, dim_level)}
+        url = self.url + "/elog"
+
         try:
             r = requests.post(self.url, data=payload, timeout=2)
         except:
@@ -34,7 +39,7 @@ class Homeseer(object):
 
         ''' Connect to Homeseer and open the log file. '''
         try:
-            website = requests.get(self.url, timeout=2)
+            website = requests.get(url, timeout=2)
             tree = lxml.html.fromstring(website.content)
             ''' Search for the latest log entry '''
             elements = tree.xpath("//td[@class='LOGEntry0']")
@@ -46,16 +51,13 @@ class Homeseer(object):
                     address is correct. Is your logfile unusually long?? "
             sys.exit(0)
 
-        print '''
-        Your string was    :\t%s
-        Your housecode was :\t%s
-        Your command was   :\t%s
-        Your options were  :\t%s ''' \
-            % (script_raw_command, device_housecode, device_command, dim_level[1:])
-        print ("Response : " + results)
+        return results
 
-    def status(self):
-        website = requests.get(self.url)
+    def status(self, script_command):
+
+        url = self.url + "/stat?location=" + script_command
+
+        website = requests.get(url)
         tree = lxml.html.fromstring(website.content)
         website.close()
         ''' parse xpath and retrieve appropriate tables '''
@@ -77,69 +79,89 @@ class Homeseer(object):
 
         '''call chunker function and output lists of 6 as that's how many rows Homeseer has.
          Return only the rows we want '''
-        status = []
+        results = []
         for group in chunker(output, 6):
-            print str(group[0]).ljust(15) +  str(group[2]).ljust(35)\
-                        + str(group[5])
+            results.append(group[0])
+            results.append(group[2])
+            results.append(group[5])
+            #print str(group[0]).ljust(15) +  str(group[2]).ljust(35) + str(group[5])
+        #print results
+        return results
 
-if len(sys.argv) == 1:
-    #clear screen first
-    os.system('cls' if os.name=='nt' else 'clear')
-    print '''
-    To control an HS device supporting on/off/dim then enter the following:
+def main():
 
-    On   :\texec housecode on
-    Off  :\texec housecode off
-    DDim :\texec housecode ddim level (dims to absolute dim value)
-    Dim  :\texec housecode dim level (dims relative to current level)
+    ''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
+    hs = Homeseer("http://192.168.10.102")
+    ''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
 
-    example :\texec B10 ddim 10
-    \t\texec B10 on
+    if len(sys.argv) == 1:
+        ''' clear screen first '''
+        os.system('cls' if os.name=='nt' else 'clear')
+        print '''
+        To control an HS device supporting on/off/dim then enter the following:
 
-    To set the string of a device such as as virtual device supporting
-    Play/Pause/Stop any other status bit enter the following:
+        On   :\texec housecode on
+        Off  :\texec housecode off
+        DDim :\texec housecode ddim level (dims to absolute dim value)
+        Dim  :\texec housecode dim level (dims relative to current level)
 
-    string housecode status_string
+        example :\texec B10 ddim 10
+        \t\texec B10 on
 
-    example :\tstring B10 Stopped
-    \t\tstring B10 Connected
+        To set the string of a device such as as virtual device supporting
+        Play/Pause/Stop any other status bit enter the following:
 
-    To obtain the status of a Homeseer interface pass the interface name as the
-    first argument. If your string has spaces be sure to enclose it in quotes
-    such as "Motion Detectors"
+        string housecode status_string
 
-    example: \t ZWave
-    \t\t "Motion Detectors"
+        example :\tstring B10 Stopped
+        \t\tstring B10 Connected
 
-    ** DON'T FORGET TO CHANGE THE URL PARAMETER IN THE SCRIPT **
-    ** TO MATCH THE IP ADDRESS OF YOUR HOMESEER SERVER        **
-    '''
-    sys.exit(0)
+        To obtain the status of a Homeseer interface pass the interface name as the
+        first argument. If your string has spaces be sure to enclose it in quotes
+        such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
+        zwave is NOT equivalent to ZWave.
 
-script_raw_command = str.lower(sys.argv[1])
+        example: \t ZWave
+        \t\t "Motion Detectors"
 
-if sys.argv[2:3]:
-    device_housecode = sys.argv[2]
-    device_command = str.lower(sys.argv[3])
+        ** DON'T FORGET TO CHANGE THE URL PARAMETER IN THE SCRIPT **
+        ** TO MATCH THE IP ADDRESS OF YOUR HOMESEER SERVER        **
+        '''
+        sys.exit(0)
 
-if sys.argv[4:]:
-    dim_level = ",%s" % (sys.argv[4])
-else:
-    dim_level = ''
+    script_command = sys.argv[1]
 
-if script_raw_command == "exec":
-    script_command = "execx10"
-elif script_raw_command == "string":
-    script_command = "setdevicestring"
-else:
-    script_command = script_raw_command
+    if sys.argv[2:3]:
+        device_housecode = sys.argv[2]
+        device_command = str.lower(sys.argv[3])
 
-if script_command == "execx10" or script_command == "setdevicestring":
-    hscontrol = Homeseer(base_url + "/elog")
-    hscontrol = hscontrol.control(script_command, device_housecode, \
-                                                device_command, dim_level)
-    sys.exit(0)
-else:
-    hsstatus = Homeseer(base_url + "/stat?location=" + script_command)
-    hstatus = hsstatus.status()
-    sys.exit(0)
+    if sys.argv[4:]:
+        dim_level = ",%s" % (sys.argv[4])
+    else:
+        dim_level = ''
+
+    if str.lower(script_command) == "exec" or str.lower(script_command) == "string":
+        results = hs.control(script_command, device_housecode, device_command, dim_level)
+        print '''
+        Your string was    :\t%s
+        Your housecode was :\t%s
+        Your command was   :\t%s
+        Your options were  :\t%s ''' \
+            % (script_command, device_housecode, device_command, dim_level[1:])
+        print ("Response : " + results)
+    else:
+        results = hs.status(script_command)
+        ''' clear screen first '''
+        os.system('cls' if os.name=='nt' else 'clear')
+        count = 0
+        ''' iterate through list in 3s as this is the number of rows of data. Limit the second row
+        "Name" to be no more than 35 characters + two ".." for proper screen formatting on
+        an 80 row wide terminal '''
+        for i in range(len(results)/3):
+            print str(results[(count)]).ljust(20) +  \
+                str(results[(count+1)][:35] + (results[(count+1)][35:] and '..')).ljust(39) \
+                      + str(results[(count+2)])
+            count += 3
+
+if __name__ == "__main__":
+    main()
