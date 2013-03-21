@@ -58,36 +58,29 @@ class Homeseer(object):
         website = requests.get(self.url)
         tree = lxml.html.fromstring(website.content)
         website.close()
-        elements_name = tree.xpath("//td[starts-with(@class, 'tablerow')]")
-        elements_status = tree.xpath("//td[starts-with(@id, 'dv')]")
-        output_name = []
-        output_status = []
+        ''' parse xpath and retrieve appropriate tables '''
+        elements = tree.xpath("//td[contains(@class, 'table') and not (contains(@id, 'dx'))]")
+        ''' strip all line feeds '''
+        output = []
+        for i in range(0, len(elements)):
+            output.append(elements[i].text_content().strip())
 
-        for i in range(0, len(elements_name)-1):
-            output_name.append(elements_name[i].text_content().strip())
+        ''' remove any blank fields in list if they exist and remove some extraneous header rows'''
+        output = filter(None, output)
+        output.pop(0)
+        output.pop(6)
+        output.pop()
 
-        for i in range(0, len(elements_status)):
-            output_status.append(elements_status[i].text_content().strip())
-
-        output_name = filter(None, output_name)
-        output_name = [output_name for output_name in output_name if output_name != \
-                 "0%10%20%30%40%50%60%70%80%90%100%"]
-
+        ''' function to split lists into chunks of (x) size '''
         def chunker(seq, size):
             return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
 
-        devices = []
-        for group in chunker(output_name, 5):
-            devices.append(group[1:-3])
-
-        count = 0
-        for sublist in devices:
-            sublist.insert(0, output_status[count])
-            count += 1
-
-        status_output = [item for sublist in devices for item in sublist]
-        for group in chunker(status_output, 2):
-            print ' ==> '.join(group)
+        '''call chunker function and output lists of 6 as that's how many rows Homeseer has.
+         Return only the rows we want '''
+        status = []
+        for group in chunker(output, 6):
+            print str(group[0]).ljust(15) +  str(group[2]).ljust(35)\
+                        + str(group[5])
 
 if len(sys.argv) == 1:
     #clear screen first
