@@ -146,17 +146,15 @@ class HSConnect(object):
         tree = lxml.html.fromstring(website.content)
         website.close()
         ''' parse xpath and retrieve appropriate tables '''
-        elements = tree.xpath("//td[contains(@class, 'table') and not (contains(@id, 'dx'))]")
+        elements = tree.xpath("//td[contains(@class, 'table') and not (contains(@id, 'dx')) \
+                              and not (contains(@class, 'tableheader')) \
+                                  and not (contains(form/@name, 'statform')) \
+                                      and not (contains(text(), 'Control'))]//text()[normalize-space()]")
+
         ''' strip all line feeds '''
         output = []
         for i in range(0, len(elements)):
-            output.append(elements[i].text_content().strip())
-
-        ''' remove any blank fields in list if they exist and remove some extraneous header rows'''
-        output = filter(None, output)
-        output.pop(0)
-        output.pop(6)
-        output.pop()
+            output.append(elements[i].strip())
 
         ''' function to split lists into chunks of (x) size '''
         def chunker(seq, size):
