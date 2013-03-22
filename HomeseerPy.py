@@ -60,8 +60,8 @@ class HomeseerPy(object):
 
     To obtain the status of a Homeseer interface pass the interface name as the
     first argument. If your string has spaces be sure to enclose it in quotes
-    such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
-    zwave is NOT equivalent to ZWave.
+    such as "Motion Detectors". Homeseer IS case sensitive so keep this in
+    mind. "zwave" is NOT equivalent to "ZWave."
 
         example: ZWave
                       "Motion Detectors"
@@ -72,8 +72,10 @@ class HomeseerPy(object):
         self.username = username
         self.password = password
 
-    def control(self, script_command, device_housecode, device_command, dim_level=''):
-        '''To control an HS device supporting on/off/dim then enter the following:
+    def control(self, script_command, device_housecode,
+                            device_command, dim_level=''):
+        '''To control an HS device supporting on/off/dim then enter
+         the following:
 
         Usage:
         hs.control(exec, B10, on)
@@ -100,34 +102,34 @@ class HomeseerPy(object):
         elif str.lower(script_command) == "string":
             script_command = "setdevicestring"
 
-        payload = {'devlist':'0','dev_value':'','devaction':'', \
-        'delay_hours':'0', 'delay_minutes':'0','delay_seconds':'0','message':'', \
-        'hosts':'','runscript':'Execute+Command','ref_page':'ctrl','scriptcmd': \
-        '&hs.%s("%s","%s"%s)' % (script_command, device_housecode, \
-                                                        device_command, dim_level)}
+        payload = {'devlist': '0', 'dev_value': '', 'devaction': '',
+        'delay_hours': '0', 'delay_minutes': '0', 'delay_seconds': '0',
+        'message': '', 'hosts': '', 'runscript': 'Execute+Command',
+        'ref_page': 'ctrl', 'scriptcmd': '&hs.%s("%s","%s"%s)'
+        % (script_command, device_housecode, device_command, dim_level)}
 
         try:
-            website = requests.post(self.url, data=payload, auth= \
+            website = requests.post(self.url, data=payload, auth=
                                     (self.username, self.password), timeout=2)
             website.close()
         except:
-            print " \
-                    Could not connect to server. Check that Homeseer is running and that the ip \
-                    address is correct."
+            print "Could not connect to server. Check that Homeseer is running\
+                    and that the ip address is correct."
             sys.exit(0)
 
-        #wait 1 second before checking status as it takes a moment for HS to update
+        #wait 1 second before checking status as it takes a moment
+        #for HS to update
         time.sleep(1)
 
         #Connect to Homeseer and open the log file.
         try:
-            website = requests.get(self.url + "/elog", auth= \
-                                   (self.username, self.password),timeout=2)
+            website = requests.get(self.url + "/elog", auth=
+                                   (self.username, self.password), timeout=2)
             website.close()
         except:
-            print "\
-                    Could not connect to server. Check that Homeseer is running and that the ip \
-                    address is correct. Is your logfile unusually long?? "
+            print "Could not connect to server. Check that Homeseer is \
+            running and that the ip address is correct. \
+            Is your logfile unusually long?? "
             sys.exit(0)
 
         tree = lxml.html.fromstring(website.content)
@@ -138,10 +140,10 @@ class HomeseerPy(object):
         return results
 
     def status(self, script_command):
-        '''To obtain the status of a Homeseer interface pass the interface name as the
-        first argument. If your string has spaces be sure to enclose it in quotes
-        such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
-        zwave is NOT equivalent to ZWave.
+        '''To obtain the status of a Homeseer interface pass the interface
+        name as the first argument. If your string has spaces be sure to
+        enclose it in quotes such as "Motion Detectors". Homeseer IS case
+        sensitive so keep this in mind. "Zwave" is NOT equivalent to "ZWave"
 
         Usage:
         hs.status("ZWave")
@@ -153,20 +155,21 @@ class HomeseerPy(object):
         url = self.url + "/stat?location=" + script_command
 
         try:
-            website = requests.get(url, auth=(self.username, self.password) ,timeout=2)
+            website = requests.get(url, auth=(self.username, self.password),
+                                                                    timeout=2)
         except:
-            print " \
-                    Could not connect to server. Check that Homeseer is running and that the ip \
-                    address is correct."
+            print "Could not connect to server. Check that Homeseer is \
+            running and that the ip address is correct."
             sys.exit(0)
         finally:
             tree = lxml.html.fromstring(website.content)
             website.close()
             #parse xpath and retrieve appropriate tables
-            elements = tree.xpath("//td[contains(@class, 'table') and not (contains(@id, 'dx')) \
-                                  and not (contains(@class, 'tableheader')) \
-                                      and not (contains(form/@name, 'statform')) \
-                                          and not (contains(text(), 'Control'))]//text()[normalize-space()]")
+            elements = tree.xpath("\
+            //td[contains(@class, 'table') and not (contains(@id, 'dx')) \
+            and not (contains(@class, 'tableheader')) \
+            and not (contains(form/@name, 'statform')) \
+            and not (contains(text(), 'Control'))]//text()[normalize-space()]")
 
         #strip all line feeds
         output = []
@@ -178,6 +181,7 @@ class HomeseerPy(object):
             return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
 
         parsed_data = []
+
         def createdict(results):
             results_iter = iter(results)
             headers = results_iter.next()
@@ -185,8 +189,9 @@ class HomeseerPy(object):
                 parsed_data.append(dict(zip(headers, row)))
             return parsed_data
 
-        #call chunker function and output lists of 6 as that's how many rows Homeseer has.
-        #Return only the rows we want which are : Status, Name, Last Changed
+        #call chunker function and output lists of 6 as that's how many rows
+        #Homeseer has.Return only the rows we want which are :
+        #Status, Name, Last Changed
         results = []
         for group in chunker(output, 6):
             results.append(group[0])
@@ -194,6 +199,7 @@ class HomeseerPy(object):
             results.append(group[5])
 
         return results
+
 
 def main():
 
@@ -206,7 +212,7 @@ def main():
 
     if len(sys.argv) == 1:
         #clear screen first
-        os.system('cls' if os.name=='nt' else 'clear')
+        os.system('cls' if os.name == 'nt' else 'clear')
         print '''
         To control an HS device supporting on/off/dim then enter the following:
 
@@ -228,10 +234,10 @@ def main():
         example :\tstring B10 Stopped
         \t\tsB10 Connected
 
-        To obtain the status of a Homeseer interface pass the interface name as the
-        first argument. If your string has spaces be sure to enclose it in quotes
-        such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
-        zwave is NOT equivalent to ZWave.
+        To obtain the status of a Homeseer interface pass the interface
+        name as the first argument. If your string has spaces be sure to
+        enclose it in quotes such as "Motion Detectors". Homeseer IS case
+        sensitive so keep this in mind. "zwave" is NOT equivalent to "ZWave"
 
         example: \t ZWave
         \t\t "Motion Detectors"
@@ -242,7 +248,8 @@ def main():
         sys.exit(0)
 
     def run_control(command):
-        results = hs.control(command, device_housecode, device_command, dim_level)
+        results = hs.control(command, device_housecode, device_command,
+                                                            dim_level)
         print '''
         Your string was    :\t%s
         Your housecode was :\t%s
@@ -254,16 +261,16 @@ def main():
     def run_status(command):
         results = hs.status(command)
         #clear screen first
-        os.system('cls' if os.name=='nt' else 'clear')
+        os.system('cls' if os.name == 'nt' else 'clear')
         count = 0
 
-        #iterate through list in 3s as this is the number of rows of data. Limit the second row
-        #Name" to be no more than 35 characters + two ".." for proper screen formatting on
-        #an 80 row wide terminal
-        for i in range(len(results)/3):
+        #iterate through list in 3s as this is the number of rows of data.
+        #Limit the second row "Name" to be no more than 35 characters +
+        #two ".." for proper screen formatting on an 80 row wide terminal
+        for i in range(len(results) / 3):
             print str(results[(count)]).ljust(20) +  \
-                str(results[(count+1)][:35] + (results[(count+1)][35:] and '..')).ljust(39) \
-                      + str(results[(count+2)])
+                str(results[(count + 1)][:35] + (results[(count + 1)][35:]
+                and '..')).ljust(39) + str(results[(count + 2)])
             count += 3
 
     commandline = sys.argv[1]
