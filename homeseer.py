@@ -31,7 +31,8 @@ class HSConnect(object):
 
     ''' Homeseer base class.
     Requires the Homeseer base URL or IP address passed to init.
-    such as "http://127.0.0.1" or "http://localhost"
+    such as "http://127.0.0.1" or "http://localhost" as well as the username and password
+    if required by your server.
 
     To control an HS device supporting on/off/dim then enter the following:
 
@@ -60,14 +61,17 @@ class HSConnect(object):
                       "Motion Detectors"
     '''
 
-    def __init__(self, url):
+    def __init__(self, url, username='', password=''):
         self.url = url
+        self.username = username
+        self.password = password
 
     def control(self, script_command, device_housecode, device_command, dim_level=''):
         '''To control an HS device supporting on/off/dim then enter the following:
 
         Init:
-        hs = HSconnect("http://127.0.0.1")
+        hs = HSconnect("http://127.0.0.1") OR
+        hs.HSConnect("http://127.0.0.1", "USERNAME", "PASSWORD")
         hs.control(exec, B10, on)
 
         On   :exec housecode on
@@ -97,32 +101,35 @@ class HSConnect(object):
         'hosts':'','runscript':'Execute+Command','ref_page':'ctrl','scriptcmd': \
         '&hs.%s("%s","%s"%s)' % (script_command, device_housecode, \
                                                         device_command, dim_level)}
-        url = self.url + "/elog"
 
         try:
-            r = requests.post(self.url, data=payload, timeout=2)
+            website = requests.post(self.url, data=payload, auth= \
+                                    (self.username, self.password), timeout=2)
+            website.close()
         except:
             print " \
                     Could not connect to server. Check that Homeseer is running and that the ip \
                     address is correct."
             sys.exit(0)
 
-        ''' wait 1 second before checking status as it takes a moment for HS to update '''
+        #wait 1 second before checking status as it takes a moment for HS to update
         time.sleep(1)
 
-        ''' Connect to Homeseer and open the log file. '''
+        #Connect to Homeseer and open the log file.
         try:
-            website = requests.get(url, timeout=2)
-            tree = lxml.html.fromstring(website.content)
-            ''' Search for the latest log entry '''
-            elements = tree.xpath("//td[@class='LOGEntry0']")
-            results = elements[0].text_content()
+            website = requests.get(self.url + "/elog", auth= \
+                                   (self.username, self.password),timeout=2)
             website.close()
         except:
             print "\
                     Could not connect to server. Check that Homeseer is running and that the ip \
                     address is correct. Is your logfile unusually long?? "
             sys.exit(0)
+
+        tree = lxml.html.fromstring(website.content)
+        #Search for the latest log entry '''
+        elements = tree.xpath("//td[@class='LOGEntry0']")
+        results = elements[0].text_content()
 
         return results
 
@@ -133,7 +140,8 @@ class HSConnect(object):
         zwave is NOT equivalent to ZWave.
 
         Init:
-        hs = HSconnect("http://127.0.0.1")
+        hs = HSconnect("http://127.0.0.1") OR
+        hs = HSconnect("http://127.0.0.1", "USERNAME", "PASSWORD")
         hs.status("ZWave")
 
         example: ZWave
@@ -142,28 +150,46 @@ class HSConnect(object):
 
         url = self.url + "/stat?location=" + script_command
 
-        website = requests.get(url)
-        tree = lxml.html.fromstring(website.content)
-        website.close()
-        ''' parse xpath and retrieve appropriate tables '''
-        elements = tree.xpath("//td[contains(@class, 'table') and not (contains(@id, 'dx')) \
-                              and not (contains(@class, 'tableheader')) \
-                                  and not (contains(form/@name, 'statform')) \
-                                      and not (contains(text(), 'Control'))]//text()[normalize-space()]")
+        try:
+            website = requests.get(url, auth=(self.username, self.password) ,timeout=2)
+        except:
+            print " \
+                    Could not connect to server. Check that Homeseer is running and that the ip \
+                    address is correct."
+            sys.exit(0)
+        finally:
+            tree = lxml.html.fromstring(website.content)
+            website.close()
+            #parse xpath and retrieve appropriate tables
+            elements = tree.xpath("//td[contains(@class, 'table') and not (contains(@id, 'dx')) \
+                                  and not (contains(@class, 'tableheader')) \
+                                      and not (contains(form/@name, 'statform')) \
+                                          and not (contains(text(), 'Control'))]//text()[normalize-space()]")
 
-        ''' strip all line feeds '''
+        #strip all line feeds
         output = []
         for i in range(0, len(elements)):
             output.append(elements[i].strip())
 
-        ''' function to split lists into chunks of (x) size '''
+        #function to split lists into chunks of (x) size '''
         def chunker(seq, size):
             return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
 
-        '''call chunker function and output lists of 6 as that's how many rows Homeseer has.
-         Return only the rows we want '''
+        parsed_data = []
+        def createdict(results):
+            results_iter = iter(results)
+            headers = results_iter.next()
+            for row in results_iter:
+                parsed_data.append(dict(zip(headers, row)))
+            return parsed_data
+
+        #call chunker function and output lists of 6 as that's how many rows Homeseer has.
+        #Return only the rows we want
         results = []
         for group in chunker(output, 6):
+            #x = [str(group[0]),  str(group[2]), str(group[5])]
+            #results.append(x)
+            #results = createdict(results)
             results.append(group[0])
             results.append(group[2])
             results.append(group[5])
@@ -172,12 +198,15 @@ class HSConnect(object):
 
 def main():
 
-    ''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
+    #**** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS ****
+
+    #hs = HSConnect("http://192.168.10.102","USERNAME","PASSWORD")
     hs = HSConnect("http://192.168.10.102")
-    ''' **** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS **** '''
+
+    #**** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS ****
 
     if len(sys.argv) == 1:
-        ''' clear screen first '''
+        #clear screen first
         os.system('cls' if os.name=='nt' else 'clear')
         print '''
         To control an HS device supporting on/off/dim then enter the following:
@@ -225,12 +254,13 @@ def main():
 
     def run_status(command):
         results = hs.status(command)
-        ''' clear screen first '''
+        #clear screen first
         os.system('cls' if os.name=='nt' else 'clear')
         count = 0
-        ''' iterate through list in 3s as this is the number of rows of data. Limit the second row
-        "Name" to be no more than 35 characters + two ".." for proper screen formatting on
-        an 80 row wide terminal '''
+
+        #iterate through list in 3s as this is the number of rows of data. Limit the second row
+        #Name" to be no more than 35 characters + two ".." for proper screen formatting on
+        #an 80 row wide terminal
         for i in range(len(results)/3):
             print str(results[(count)]).ljust(20) +  \
                 str(results[(count+1)][:35] + (results[(count+1)][35:] and '..')).ljust(39) \
