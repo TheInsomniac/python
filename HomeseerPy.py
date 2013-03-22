@@ -1,11 +1,11 @@
 '''
 A basic Homeseer control base class.
 
-Usage:
- - import homeseer :
-    hs = homeseer.HSConnect("IPADDRESS")
- - from homeseer import HSConnect
-     hs = HSConnect("IPADDRESS")
+Usage: [ ] denotes optional arguments
+ - import HomeseerPy :
+    hs = HomeseerPy.HomeseerPy("IPADDRESS"[, username="username", password"pass"])
+ - from HomeseerPy import HomeseerPy
+     hs = HomeseerPy("IPADDRESS"[, username="username", password"pass"])
 
 Implemented functions
  - control:
@@ -27,12 +27,18 @@ import lxml
 from lxml import html
 
 
-class HSConnect(object):
+class HomeseerPy(object):
 
     ''' Homeseer base class.
     Requires the Homeseer base URL or IP address passed to init.
-    such as "http://127.0.0.1" or "http://localhost" as well as the username and password
-    if required by your server.
+
+    Usage: [ ] denotes optional arguments
+
+    - import HomeseerPy :
+        hs = HomeseerPy.HomeseerPy("IPADDRESS"[, username="username", password"pass"])
+
+    - from HomeseerPy import HomeseerPy
+        hs = HomeseerPy("IPADDRESS"[, username="username", password"pass"])
 
     To control an HS device supporting on/off/dim then enter the following:
 
@@ -69,9 +75,7 @@ class HSConnect(object):
     def control(self, script_command, device_housecode, device_command, dim_level=''):
         '''To control an HS device supporting on/off/dim then enter the following:
 
-        Init:
-        hs = HSconnect("http://127.0.0.1") OR
-        hs.HSConnect("http://127.0.0.1", "USERNAME", "PASSWORD")
+        Usage:
         hs.control(exec, B10, on)
 
         On   :exec housecode on
@@ -139,9 +143,7 @@ class HSConnect(object):
         such as "Motion Detectors". Homeseer IS case sensitive so keep this in mind.
         zwave is NOT equivalent to ZWave.
 
-        Init:
-        hs = HSconnect("http://127.0.0.1") OR
-        hs = HSconnect("http://127.0.0.1", "USERNAME", "PASSWORD")
+        Usage:
         hs.status("ZWave")
 
         example: ZWave
@@ -184,12 +186,9 @@ class HSConnect(object):
             return parsed_data
 
         #call chunker function and output lists of 6 as that's how many rows Homeseer has.
-        #Return only the rows we want
+        #Return only the rows we want which are : Status, Name, Last Changed
         results = []
         for group in chunker(output, 6):
-            #x = [str(group[0]),  str(group[2]), str(group[5])]
-            #results.append(x)
-            #results = createdict(results)
             results.append(group[0])
             results.append(group[2])
             results.append(group[5])
@@ -200,8 +199,8 @@ def main():
 
     #**** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS ****
 
-    #hs = HSConnect("http://192.168.10.102","USERNAME","PASSWORD")
-    hs = HSConnect("http://192.168.10.102")
+    #hs = HomeseerPy("http://192.168.10.102","USERNAME","PASSWORD")
+    hs = HomeseerPy("http://192.168.10.102")
 
     #**** CHANGE THIS TO YOUR HOMESEER SERVER IP ADDRESS ****
 
