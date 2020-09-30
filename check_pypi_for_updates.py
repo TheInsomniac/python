@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import xmlrpclib
-import pip
+import pkg_resources
 
 pypi = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
-for dist in pip.get_installed_distributions():
+for dist in pkg_resources.working_set:
     available = pypi.package_releases(dist.project_name)
     if not available:
         # Try to capitalize pkg name
@@ -17,5 +17,4 @@ for dist in pip.get_installed_distributions():
     else:
         msg = 'up to date'
     pkg_info = '{dist.project_name} {dist.version}'.format(dist=dist)
-    print '{pkg_info:40} {msg}'.format(pkg_info=pkg_info, msg=msg)
-
+    print('{pkg_info:40} {msg}').format(pkg_info=pkg_info, msg=msg)
